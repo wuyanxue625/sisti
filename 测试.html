@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>姐感妹感小测试</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+body{background:#f8f4f4;color:#333;padding:20px;max-width:600px;margin:30px auto}
+.title{text-align:center;font-size:24px;font-weight:bold;margin-bottom:24px}
+.question{display:none}
+.question.active{display:block}
+.q-text{font-size:18px;margin-bottom:16px;line-height:1.6}
+.opt{display:block;width:100%;padding:12px 14px;margin:8px 0;border:1px solid #ddcaca;border-radius:12px;background:#fff;text-align:left;font-size:16px;cursor:pointer}
+.opt:hover{background:#fdf0f2}
+.opt.selected{background:#f3d9dd;border-color:#e8b2bc}
+.btn-row{display:flex;gap:12px;margin-top:24px}
+button{flex:1;padding:12px;border:none;border-radius:12px;font-size:16px;cursor:pointer}
+#prev{background:#eee;color:#444}
+#next{background:#e88b9b;color:white}
+#result{display:none}
+.res-box{background:#fff0f2;padding:20px;border-radius:16px}
+.res-title{font-size:20px;font-weight:bold;text-align:center;margin-bottom:16px}
+.bar-wrap{margin:14px 0}
+.bar-name{margin-bottom:6px}
+.bar-bg{width:100%;height:18px;background:#eee;border-radius:9px;overflow:hidden}
+.bar{height:100%;background:#e88b9b;transition:0.6s}
+.res-desc{margin-top:20px;line-height:1.7;font-size:15px}
+#restart{margin-top:20px;width:100%;background:#e88b9b;color:white}
+</style>
+</head>
+<body>
+<div class="title">姐感 / 妹感测试</div>
+<div id="q-container"></div>
+<div id="result">
+<div class="res-box">
+<div class="res-title">你的类型：<span id="type-name"></span></div>
+<div class="bar-wrap">
+<div class="bar-name">姐感 <span id="j-percent"></span></div>
+<div class="bar-bg"><div class="bar" id="j-bar"></div></div>
+</div>
+<div class="bar-wrap">
+<div class="bar-name">妹感 <span id="m-percent"></span></div>
+<div class="bar-bg"><div class="bar" id="m-bar"></div></div>
+</div>
+<div class="res-desc" id="type-desc"></div>
+<button id="restart">重新测试</button>
+</div>
+</div>
+
+<script>
+const questions = [
+  {q:"遇到朋友情绪崩溃，你更倾向？",opts:[
+    {t:"冷静帮她梳理办法，稳住局面",j:8,m:2},
+    {t:"先陪着哄她，跟着一起共情难过",j:2,m:8}
+  ]},
+  {q:"做决定的时候，你通常？",opts:[
+    {t:"自己拿主意，不喜欢依赖别人判断",j:9,m:1},
+    {t:"习惯听听别人意见，容易被带着走",j:1,m:9}
+  ]},
+  {q:"被人偏爱照顾时你的感受？",opts:[
+    {t:"舒服但保持独立，不想一直依附",j:7,m:3},
+    {t:"很享受，希望可以一直被护着",j:3,m:7}
+  ]},
+  {q:"吵架或者冲突里，你一般？",opts:[
+    {t:"尽量稳住情绪，理性沟通解决",j:8,m:2},
+    {t:"忍不住委屈，会流露脆弱感",j:2,m:8}
+  ]},
+  {q:"和人相处，你更常扮演？",opts:[
+    {t:"照顾别人、兜底的那一方",j:9,m:1},
+    {t:"被照顾、被迁就的那一方",j:1,m:9}
+  ]},
+  {q:"别人对你的第一印象大多是？",opts:[
+    {t:"成熟稳重，有距离感",j:8,m:2},
+    {t:"软萌乖巧，很好亲近",j:2,m:8}
+  ]},
+  {q:"就算外表看着成熟，内心会渴望撒娇示弱吗？",opts:[
+    {t:"很少，习惯自己扛住事情",j:8,m:2},
+    {t:"会，只对信任的人展露",j:2,m:8}
+  ]},
+  {q:"你的处事底色更接近？",opts:[
+    {t:"清醒自持，温柔是自己的选择",j:9,m:1},
+    {t:"天真柔软，很容易信任他人",j:1,m:9}
+  ]}
+]
+const typeInfo = [
+  {
+    name:"姐感姐",
+    desc:"自带稳定强大的气场，处事从容有主见，情绪很少失控。习惯照顾别人，但不需要依靠任何人，温柔是选择不是软肋，清醒又有距离感，是可靠的主心骨。"
+  },
+  {
+    name:"姐感妹",
+    desc:"长相软、年纪偏小，骨子里却很通透懂事。看着像需要被护着的小妹妹，遇事拎得清，会悄悄兜底，有着超出年龄的成熟，甜而不傻。"
+  },
+  {
+    name:"妹感姐",
+    desc:"外形明艳成熟、很有姐姐的氛围感，内心却藏着柔软天真。看似强势能独当一面，其实会渴望被偏爱，偶尔示弱撒娇，反差感很强。"
+  },
+  {
+    name:"妹感妹",
+    desc:"从头到尾都是纯粹的少女感，鲜活灵动。心思简单直白，会依赖、会示弱，自带让人忍不住想去呵护的气质，软乎乎没有攻击性。"
+  }
+]
+let current = 0
+let answers = Array(questions.length).fill(null)
+const qWrap = document.getElementById("q-container")
+const resultDom = document.getElementById("result")
+function renderQuestion(){
+  qWrap.innerHTML = ""
+  const item = questions[current]
+  const div = document.createElement("div")
+  div.className = "question active"
+  let html = `<div class="q-text">${current+1}. ${item.q}</div>`
+  item.opts.forEach((opt,idx)=>{
+    let sel = answers[current]===idx ? "selected" : ""
+    html += `<button class="opt ${sel}" data-idx="${idx}">${opt.t}</button>`
+  })
+  html += `<div class="btn-row">
+    <button id="prev">上一题</button>
+    <button id="next">下一题</button>
+  </div>`
+  div.innerHTML = html
+  qWrap.appendChild(div)
+  div.querySelectorAll(".opt").forEach(o=>{
+    o.onclick = ()=>{
+      answers[current] = Number(o.dataset.idx)
+      renderQuestion()
+    }
+  })
+  document.getElementById("prev").onclick = prevQ
+  document.getElementById("next").onclick = nextQ
+}
+function prevQ(){
+  if(current>0){current--;renderQuestion()}
+}
+function nextQ(){
+  if(answers[current]===null){alert("请先选择一个答案！");return}
+  if(current < questions.length-1){
+    current++
+    renderQuestion()
+  }else{
+    calcResult()
+  }
+}
+function calcResult(){
+  let jTotal=0,mTotal=0
+  answers.forEach((aidx,i)=>{
+    const opt = questions[i].opts[aidx]
+    jTotal += opt.j
+    mTotal += opt.m
+  })
+  const sum = jTotal + mTotal
+  const jPct = Math.round(jTotal/sum*100)
+  const mPct = 100 - jPct
+  let t
+  if(jPct >=70) t=0
+  else if(jPct >=52) t=1
+  else if(jPct >=48) t=2
+  else t=3
+  const info = typeInfo[t]
+  document.getElementById("type-name").innerText = info.name
+  document.getElementById("j-percent").innerText = jPct+"%"
+  document.getElementById("m-percent").innerText = mPct+"%"
+  document.getElementById("j-bar").style.width = jPct+"%"
+  document.getElementById("m-bar").style.width = mPct+"%"
+  document.getElementById("type-desc").innerText = info.desc
+  qWrap.style.display="none"
+  resultDom.style.display="block"
+}
+document.getElementById("restart").onclick = ()=>{
+  current=0
+  answers = Array(questions.length).fill(null)
+  qWrap.style.display="block"
+  resultDom.style.display="none"
+  renderQuestion()
+}
+renderQuestion()
+</script>
+</body>
+</html>
